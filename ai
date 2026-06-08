@@ -1,0 +1,694 @@
+/26, 8:58 PM Project.ipynb - Colab
+import time
+import heapq
+from collections import deque
+import pandas as pd
+import ipywidgets as widgets
+from IPython.display import display
+#
+=====================================================
+# NETWORK GRAPH
+#
+=====================================================
+network_graph
+=
+{
+'Entry_WS': {'FW_1': 3, 'WS_Internal': 2},
+'FW_1': {'SRV_Web': 5, 'SRV_App': 4},
+'WS_Internal': {'SRV_App': 6, 'FW_2': 2},
+'SRV_Web': {'DB_Main': 8},
+'SRV_App': {
+'DB_Main': 3,
+'Backup_Server': 4
+},
+'FW_2': {'SRV_File': 5},
+'SRV_File': {'Backup_Server': 2},
+'Backup_Server': {'DB_Main': 2},
+'DB_Main': {}
+}
+#
+=====================================================
+# HEURISTICS
+#
+=====================================================
+heuristic
+=
+{
+'Entry_WS': 10,
+'FW_1': 8,
+'WS_Internal': 7,
+'SRV_Web': 6,
+'SRV_App': 4,
+'FW_2': 5,
+'SRV_File': 3,
+'Backup_Server': 2,
+'DB_Main': 0
+}
+start_node
+=
+goal_node
+=
+'Entry_WS'
+'DB_Main'
+#
+=====================================================
+# COST FUNCTION
+#
+=====================================================
+def calculate_cost(graph, path):
+cost
+=
+0
+for i in range(len(path)-1):
+cost
++=
+graph[path[i]][path[i+1]]
+return cost
+#
+=====================================================
+# BFS
+#
+=====================================================
+def bfs(graph, start, goal):
+t t ti ti ti ()
+https://colab.research.google.com/drive/1SoQPgRBpwjCDy-ouMRaaYPNMtVuzb9dp 1/9
+5/30/26, 8:58 PM Project.ipynb - Colab
+start_time
+=
+time.time()
+queue
+=
+visited
+expanded
+deque([(start,[start])])
+=
+set()
+=
+0
+while queue:
+node,path
+=
+queue.popleft()
+if node not in visited:
+visited.add(node)
+expanded
++=
+1
+if node
+==
+goal:
+return {
+'Algorithm':'BFS',
+'Path':path,
+'Cost':calculate_cost(graph,path),
+'Expanded':expanded,
+'Time(ms)':(time.time()-start_time)*1000
+}
+for neighbor in graph[node]:
+queue.append((neighbor,path+[neighbor]))
+#
+=====================================================
+# DFS
+#
+=====================================================
+def dfs(graph,start,goal):
+start_time
+=
+time.time()
+stack
+=
+visited
+expanded
+[(start,[start])]
+=
+set()
+=
+0
+while stack:
+node,path
+=
+stack.pop()
+if node not in visited:
+visited.add(node)
+expanded
++=
+1
+if node
+==
+goal:
+return {
+'Algorithm':'DFS',
+'Path':path,
+'Cost':calculate_cost(graph,path),
+'Expanded':expanded,
+'Time(ms)':(time.time()-start_time)*1000
+}
+for neighbor in reversed(
+list(graph[node].keys())
+):
+stack.append(
+(neighbor,path+[neighbor])
+)
+#
+=====================================================
+# UCS
+#
+=====================================================
+def ucs(graph,start,goal):
+start_time
+=
+time.time()
+pq
+=
+[(0,start,[start])]
+visited = set()
+https://colab.research.google.com/drive/1SoQPgRBpwjCDy-ouMRaaYPNMtVuzb9dp 2/9
+5/30/26, 8:58 PM Project.ipynb - Colab
+visited set()
+expanded
+=
+0
+while pq:
+cost,node,path
+=
+heapq.heappop(pq)
+if node not in visited:
+visited.add(node)
+expanded
++=
+1
+if node
+==
+goal:
+return {
+'Algorithm':'UCS',
+'Path':path,
+'Cost':cost,
+'Expanded':expanded,
+'Time(ms)':(time.time()-start_time)*1000
+}
+for neighbor,edge_cost in graph[node].items():
+heapq.heappush(
+pq,
+(
+cost+edge_cost,
+neighbor,
+path+[neighbor]
+)
+)
+#
+=====================================================
+# A*
+#
+=====================================================
+def astar(graph,heuristic,start,goal):
+start_time
+=
+time.time()
+pq
+=
+visited
+expanded
+[(heuristic[start],0,start,[start])]
+=
+set()
+=
+0
+while pq:
+f,g,node,path
+=
+heapq.heappop(pq)
+if node not in visited:
+visited.add(node)
+expanded
++=
+1
+if node
+==
+goal:
+return {
+'Algorithm':'A*',
+'Path':path,
+'Cost':g,
+'Expanded':expanded,
+'Time(ms)':(time.time()-start_time)*1000
+}
+for neighbor,cost in graph[node].items():
+new_g
+new_f
+=
+g
++
+cost
+=
+new_g
++
+heuristic[neighbor]
+heapq.heappush(
+pq,
+(
+new_f,
+new_g,
+neighbor,
+path+[neighbor]
+)
+https://colab.research.google.com/drive/1SoQPgRBpwjCDy-ouMRaaYPNMtVuzb9dp 3/9
+5/30/26, 8:58 PM Project.ipynb - Colab
+)
+#
+=====================================================
+# HILL CLIMBING
+#
+=====================================================
+def hill_climbing(graph,heuristic,start,goal):
+start_time
+=
+time.time()
+current
+=
+start
+path
+=
+[current]
+expanded
+=
+1
+while current != goal:
+neighbors
+=
+graph[current]
+if not neighbors:
+break
+best
+=
+best_h
+None
+=
+heuristic[current]
+for neighbor in neighbors:
+if heuristic[neighbor] < best_h:
+best_h
+=
+heuristic[neighbor]
+best
+=
+neighbor
+if best is None:
+return {
+'Algorithm':'Hill Climbing',
+'Path':path,
+'Cost':calculate_cost(graph,path),
+'Expanded':expanded,
+'Time(ms)':(time.time()-start_time)*1000,
+'Status':'Local Maxima'
+}
+current
+=
+best
+path.append(current)
+expanded
++=
+1
+return {
+'Algorithm':'Hill Climbing',
+'Path':path,
+'Cost':calculate_cost(graph,path),
+'Expanded':expanded,
+'Time(ms)':(time.time()-start_time)*1000,
+'Status':'Goal Reached'
+}
+#
+=====================================================
+# LOCAL MAXIMA DEMO
+#
+=====================================================
+local_graph
+=
+{
+'A':{'B':1,'C':1},
+'B':{'D':1},
+'C':{'Goal':1},
+'D':{},
+'Goal':{}
+}
+local_heuristic
+'A':5,
+'B':2,
+'C':4,
+'D':3,
+'Goal':0
+=
+{
+}
+https://colab.research.google.com/drive/1SoQPgRBpwjCDy-ouMRaaYPNMtVuzb9dp 4/9
+5/30/26, 8:58 PM Project.ipynb - Colab
+local_result
+=
+local_graph,
+local_heuristic,
+'A',
+'Goal'
+hill_climbing(
+)
+print("Local Maxima Demo")
+print(local_result)
+#
+=====================================================
+# MINIMAX
+#
+=====================================================
+def minimax(node,depth,maximizing,tree):
+if depth==0 or node not in tree:
+return node[1]
+if maximizing:
+value
+=
+float('-inf')
+for child in tree[node]:
+value
+=
+max(
+value,
+minimax(
+child,
+depth-1,
+False,
+tree
+)
+)
+return value
+else:
+value
+=
+float('inf')
+for child in tree[node]:
+value
+=
+min(
+value,
+minimax(
+child,
+depth-1,
+True,
+tree
+)
+)
+return value
+#
+=====================================================
+# ALPHA BETA
+#
+=====================================================
+def alpha_beta(
+node,
+depth,
+alpha,
+beta,
+maximizing,
+tree
+):
+if depth==0 or node not in tree:
+return node[1]
+if maximizing:
+value
+=
+float('-inf')
+for child in tree[node]:
+value
+=
+max(
+https://colab.research.google.com/drive/1SoQPgRBpwjCDy-ouMRaaYPNMtVuzb9dp 5/9
+5/30/26, 8:58 PM Project.ipynb - Colab
+value,
+alpha_beta(
+child,
+depth-1,
+alpha,
+beta,
+False,
+tree
+)
+)
+alpha
+=
+max(alpha,value)
+if beta<=alpha:
+break
+return value
+else:
+value
+=
+float('inf')
+for child in tree[node]:
+value
+=
+min(
+value,
+alpha_beta(
+child,
+depth-1,
+alpha,
+beta,
+True,
+tree
+)
+)
+beta
+=
+min(beta,value)
+if beta<=alpha:
+break
+return value
+#
+=====================================================
+# GAME TREE
+#
+=====================================================
+game_tree
+=
+{
+('Root',0):[
+('Attack1',0),
+('Attack2',0)
+],
+('Attack1',0):[
+('Compromise',10),
+('Blocked',3)
+],
+('Attack2',0):[
+('Detected',5),
+('Secure',1)
+]
+}
+mini_start
+=
+minimax_result
+('Root',0),
+2,
+True,
+game_tree
+time.time()
+=
+minimax(
+)
+mini_time
+=
+(time.time()-mini_start)*1000
+ab_start
+=
+ab_result
+=
+('Root' 0)
+time.time()
+alpha_beta(
+https://colab.research.google.com/drive/1SoQPgRBpwjCDy-ouMRaaYPNMtVuzb9dp 6/9
+5/30/26, 8:58 PM Project.ipynb - Colab
+( Root ,0),
+2,
+float('-inf'),
+float('inf'),
+True,
+game_tree
+)
+ab_time
+=
+(time.time()-ab_start)*1000
+#
+=====================================================
+# RUN ALGORITHMS
+#
+=====================================================
+bfs_result
+=
+bfs(
+network_graph,
+start_node,
+goal_node
+)
+dfs_result
+=
+dfs(
+network_graph,
+start_node,
+goal_node
+)
+ucs_result
+=
+ucs(
+network_graph,
+start_node,
+goal_node
+)
+astar_result
+=
+network_graph,
+heuristic,
+start_node,
+goal_node
+astar(
+)
+hill_result
+=
+hill_climbing(
+network_graph,
+heuristic,
+start_node,
+goal_node
+)
+#
+=====================================================
+# TABLE
+#
+=====================================================
+results
+=
+[
+bfs_result,
+dfs_result,
+ucs_result,
+astar_result,
+hill_result,
+{
+'Algorithm':'Minimax',
+'Path':'-'
+,
+'Cost':'-'
+,
+'Expanded':'-'
+,
+'Time(ms)':mini_time
+},
+{
+'Algorithm':'Alpha-Beta',
+'Path':'-'
+,
+'Cost':'-'
+,
+'Expanded':'-'
+,
+'Time(ms)':ab_time
+}
+]
+comparison_table
+=
+pd.DataFrame(results)
+print("\nCOMPARISON TABLE\n")
+https://colab.research.google.com/drive/1SoQPgRBpwjCDy-ouMRaaYPNMtVuzb9dp 7/9
+5/30/26, 8:58 PM p ( )
+display(comparison_table)
+Project.ipynb - Colab
+#
+=====================================================
+# COLAB GUI
+#
+=====================================================
+dropdown
+=
+widgets.Dropdown(
+options=[
+'BFS',
+'DFS',
+'UCS',
+'A*',
+'Hill Climbing'
+],
+description='Algorithm:'
+)
+button
+=
+widgets.Button(
+description='Run'
+)
+output
+=
+widgets.Output()
+def run_clicked(b):
+output.clear_output()
+algo
+=
+dropdown.value
+if algo=='BFS':
+result=bfs_result
+elif algo=='DFS':
+result=dfs_result
+elif algo=='UCS':
+result=ucs_result
+elif algo=='A*':
+result=astar_result
+else:
+result=hill_result
+with output:
+print(
+"Algorithm:",
+result['Algorithm']
+)
+print(
+"
+"Path:",
+->
+".join(result['Path'])
+)
+print(
+"Cost:",
+result['Cost']
+)
+print(
+"Expanded:",
+result['Expanded']
+)
+print(
+"Time(ms):",
+result['Time(ms)']
+)
+if 'Status' in result:
+print(
+"Status:",
+result['Status']
+)
+https://colab.research.google.com/drive/1SoQPgRBpwjCDy-ouMRaaYPNMtVuzb9dp 8/9
+5/30/26, 8:58 PM Project.ipynb - Colab
+)
+button.on_click(run_clicked)
+display(dropdown)
+display(button)
+display(output)
+Local Maxima Demo
+{'Algorithm': 'Hill Climbing', 'Path': ['A', 'B'], 'Cost': 1, 'Expanded': 2, 'Time(ms)': 0.010251998901367188, 'Status': 'Local
+COMPARISON TABLE
+Algorithm Path Cost Expanded Time(ms) Status
+0 BFS [Entry_WS, FW_1, SRV_Web, DB_Main] 16 7 0.023842 NaN
+1 DFS [Entry_WS, FW_1, SRV_Web, DB_Main] 16 4 0.014782 NaN
+2 UCS [Entry_WS, FW_1, SRV_App, DB_Main] 10 8 0.034094 NaN
+3 A* [Entry_WS, FW_1, SRV_App, DB_Main] 10 6 0.011206 NaN
+4 Hill Climbing [Entry_WS, WS_Internal, SRV_App, DB_Main] 11 4 0.004292 Goal Reached
+5 Minimax - - - 0.100613 NaN
+6 Alpha-Beta - - - 0.094652 NaN
+Algorithm:
+A*
+Run
+Algorithm: A*
+Path: Entry_WS -> FW_1 -> SRV_App -> DB_Main
+Cost: 10
+Expanded: 6
+Time(ms): 0.011205673217773438
+https://colab.research.google.com/drive/1SoQPgRBpwjCDy-ouMRaaYPNMtVuzb9dp
